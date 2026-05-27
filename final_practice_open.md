@@ -1,6 +1,6 @@
 # Final Practice — Open Challenge: Design Your Own Multi-Agent LangGraph Pipeline
 
-In this task you'll design and build a LangGraph pipeline **of your own choosing**. Unlike the guided QA agent exercise, this challenge starts with a blank canvas — you pick the problem domain, decompose the work into agents, and wire everything together yourself.
+In this task you'll design and build a LangGraph pipeline **of your own choosing**. You'll pick the problem domain, decompose the work into agents, and wire everything together yourself.
 
 **Minimum requirements for your pipeline:**
 
@@ -19,7 +19,7 @@ In this task you'll design and build a LangGraph pipeline **of your own choosing
 Pick one of the example domains below, or propose your own.
 
 <details>
-<summary>📋 Example domains (click to expand)</summary>
+<summary>📋 Example domains</summary>
 
 | Domain | What it does |
 | --- | --- |
@@ -33,7 +33,7 @@ Pick one of the example domains below, or propose your own.
 </details>
 
 > **Think before you continue.**  
-> Write down (on paper or in a comment block) a one-paragraph description of:
+> In a comment block, write down a one-paragraph description of:
 > - What problem this pipeline solves
 > - Who the end user is
 > - What "done" looks like — what artifact is produced and where it lands
@@ -42,11 +42,12 @@ Pick one of the example domains below, or propose your own.
 
 ## Step 2 — Define your agent role decomposition
 
-Before writing any code, answer these questions. There is no single right answer — the goal is intentional design.
+Before writing any code, answer these questions. 
 
 ### 2.1 Identify responsibilities
 
-List every distinct responsibility your pipeline needs to carry out. Think in verbs: *fetch*, *search*, *draft*, *review*, *validate*, *publish*.
+List every distinct responsibility your pipeline needs to carry out. 
+Tip: think in verbs: *fetch*, *search*, *draft*, *review*, *validate*, *publish*.
 
 > **Checkpoint — ask yourself:**
 > - Which responsibilities require external data (API calls, MCP lookups)?
@@ -68,8 +69,6 @@ LLM calls it makes : ___ (count and brief description)
 External tool calls it makes : ___
 ```
 
-> **Common mistake to avoid:** do not put data-fetching and generation in the same agent. Keep gathering and reasoning separate so each agent stays testable and replaceable.
-
 ### 2.3 Decide the human gate
 
 Answer:
@@ -80,7 +79,8 @@ Answer:
 
 ### 2.4 Sketch the graph (on paper or ASCII)
 
-Draw the nodes, edges, and the conditional branch before touching code. Example structure:
+Draw the nodes, edges, and the conditional branch before touching code. 
+Example structure:
 
 ```
 START → [Agent A] → [Agent B] → [Human Review]
@@ -90,8 +90,6 @@ START → [Agent A] → [Agent B] → [Human Review]
                     ▼                                    ▼
                [Publish] → END                     [Agent B]  (loop)
 ```
-
-Your graph does not have to match this shape — it just needs to be intentional.
 
 ---
 
