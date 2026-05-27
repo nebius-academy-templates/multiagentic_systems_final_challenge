@@ -1,4 +1,4 @@
-﻿# Final Practice - Guided
+﻿# Final Practice — Guided
 
 In this task, you'll implement a Graph-based QA agent that reads a user story from a Notion page via MCP, generates test cases, passes them through an automated quality gate, walks through a human-in-the-loop review, and publishes the final output back to Notion as a new child page.
 
@@ -22,13 +22,11 @@ You'll create every file from scratch: credentials, state, agent nodes, the huma
 9. Submit your task
 </aside>
 
-### Button text: Let's go!
-
 ## 1. Set up your environment
 
 Once you log in to your GitHub account, the repository for this task will be added automatically.
 
-1. Confirm that `agent-qa-langgraph` appears in your GitHub account.
+1. Confirm that `multiagentic_systems_final_challenge` appears in your GitHub account.
 2. Clone the repo and open it in your editor.
 3. Make sure you have Python 3.11+ and Node.js installed.
 
@@ -58,7 +56,7 @@ python-dotenv>=1.0
 You will create every file listed below. `mcp_config.json` and `requirements.txt` are provided.
 
 ```
-agent-qa-langgraph/
+multiagentic_systems_final_challenge/
 ├── state.py            ← TODO: QAState TypedDict (Task 3)
 ├── nodes.py            ← TODO: context_agent, qa_agent, quality_agent, human_review_node, publish_node (Tasks 4–5)
 ├── graph.py            ← TODO: wire the StateGraph (Task 6)
@@ -536,8 +534,6 @@ Processing Notion page: <page-id>
 Before submitting, review the checklist.
 
 ### ✅ Submission checklist
-
-- [ ]  `.env` exists with all six variables set to real values
 - [ ]  `mcp_config.json` has the Notion API key configured
 - [ ]  Notion page shared with the integration (with Insert content permission)
 - [ ]  `state.py` — `QAState` TypedDict with all 10 fields
