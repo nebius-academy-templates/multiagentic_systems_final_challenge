@@ -1,15 +1,12 @@
 ﻿# Final Practice — Guided
 
-In this task, you'll implement a Graph-based QA agent that reads a user story from a Notion page via MCP, generates test cases, passes them through an automated quality gate, walks through a human-in-the-loop review, and publishes the final output back to Notion as a new child page.
+In this task, you'll implement a graph-based QA agent that reads a user story from a Notion page via MCP, generates test cases, passes them through an automated quality gate, walks through a human-in-the-loop review, and publishes the final output back to Notion as a new child page.
 
-The pipeline is built around **three specialist agents** — a Context Agent that fetches the user story, a QA Agent that generates test cases, and a Quality Agent that audits them and loops back if they fall short — plus a human review interrupt gate and a publish step.
+The pipeline is built around **three specialist agents**: a context agent that fetches the user story, a QA agent that generates test cases, and a quality agent that audits them and loops back if they fall short — plus a human review interrupt gate and a publish step.
 
 You'll create every file from scratch: credentials, state, agent nodes, the human review node, the graph, and the entry point.
 
-## Workflow at a glance
-
-<aside>
-👩‍💻
+## 👩‍💻 Workflow at a glance
 
 1. Set up your environment
 2. Configure credentials
@@ -20,7 +17,6 @@ You'll create every file from scratch: credentials, state, agent nodes, the huma
 7. Implement `main.py`
 8. Run the agent
 9. Submit your task
-</aside>
 
 ## 1. Set up your environment
 
@@ -53,10 +49,10 @@ python-dotenv>=1.0
 
 ### Repository layout
 
-You will create every file listed below. `mcp_config.json` and `requirements.txt` are provided.
+Your task is to create all files listed below. `mcp_config.json` and `requirements.txt` are provided.
 
 ```
-multiagentic_systems_final_challenge/
+agent-qa-langgraph/
 ├── state.py            ← TODO: QAState TypedDict (Task 3)
 ├── nodes.py            ← TODO: context_agent, qa_agent, quality_agent, human_review_node, publish_node (Tasks 4–5)
 ├── graph.py            ← TODO: wire the StateGraph (Task 6)
@@ -67,11 +63,11 @@ multiagentic_systems_final_challenge/
 
 ### Key concepts
 
-**Agent node** — a node that owns multiple focused LLM or tool calls and assembles a composite result. Each agent has a bounded responsibility that cannot be delegated to another node.
+**Agent node**: A node that owns multiple focused LLM or tool calls and assembles a composite result. Each agent has a bounded responsibility that cannot be delegated to another node.
 
-**Human-in-the-loop (HITL)** — a node that calls `interrupt()` to pause graph execution, collects a human decision, then routes the graph forward (approved) or loops it back (needs changes).
+**Human-in-the-loop (HITL)**: A node that calls `interrupt()` to pause graph execution, collects a human decision, then routes the graph forward (approved) or loops it back (needs changes).
 
-**MCP (Model Context Protocol)** — a standard for connecting LLMs to external context sources. You will use `@notionhq/notion-mcp-server` via Node.js to give Claude access to Notion pages without writing custom API wrappers.
+**MCP (Model Context Protocol)**: A standard for connecting LLMs to external context sources. You'll use `@notionhq/notion-mcp-server` via Node.js to give Claude access to Notion pages without writing custom API wrappers.
 
 ---
 
@@ -95,8 +91,8 @@ LANGCHAIN_PROJECT=qa-langgraph-agent
 | Key | Source |
 | --- | --- |
 | `NOTION_API_KEY` | Notion → Settings → Connections → Develop or manage integrations |
-| `ANTHROPIC_API_KEY` | console.anthropic.com → API keys |
-| `LANGCHAIN_API_KEY` | smith.langchain.com → Settings → API keys |
+| `ANTHROPIC_API_KEY` | [console.anthropic.com](http://console.anthropic.com/) → API keys |
+| `LANGCHAIN_API_KEY` | [smith.langchain.com](http://smith.langchain.com/) → Settings → API keys |
 
 ### 2.2. Configure `mcp_config.json`
 
@@ -109,21 +105,24 @@ Replace `ntn_your_key_here` with your real Notion key:
     "command": "npx",
     "args": ["-y", "@notionhq/notion-mcp-server"],
     "env": {
-      "OPENAPI_MCP_HEADERS": "{\"Authorization\": \"Bearer ntn_your_key_here\", \"Notion-Version\": \"2022-06-28\"}"
+      "OPENAPI_MCP_HEADERS": "{\\"Authorization\\": \\"Bearer ntn_your_key_here\\", \\"Notion-Version\\": \\"2022-06-28\\"}"
     }
   }
 }
 ```
 
-### 2.3. Prepare your Notion page
+### 2.3. **Prepare your input file**
 
-Create a Notion page that contains a user story. Copy its page ID from the URL — it's the 32-character hex string at the end:
+Create a plain-text file (e.g. `user_story.txt`) in the project root that contains your user story. This is the file the Context Agent will read. 
+
+Example:
 
 ```
-https://www.notion.so/My-User-Story-<PAGE_ID>
+As a registered user, I want to log in with my email and password
+so that I can access my personal dashboard.
 ```
 
-Make sure the integration you created in step 2.1 has access to that page (share the page with the integration from the Notion UI).
+Pass the path to this file when running the agent (see Section 8).
 
 ---
 
@@ -133,16 +132,16 @@ Define a `TypedDict` called `QAState`:
 
 | **Field** | **Type** | **Purpose** |
 | --- | --- | --- |
-| `page_id` | `str` | Notion page ID passed in at startup |
+| `page_id` | `str` | Notion page ID passed at startup |
 | `user_story` | `str` | Raw text of the user story fetched from Notion |
-| `draft_test_cases` | `str` | Test cases generated by the QA Agent |
-| `reviewed_test_cases` | `str` | Polished test cases produced by the Quality Agent when it passes |
-| `quality_passed` | `bool` | `True` when the Quality Agent is satisfied with the draft |
-| `quality_feedback` | `str` | Issues found by the Quality Agent; `""` when quality passes |
+| `draft_test_cases` | `str` | Test cases generated by the QA agent |
+| `reviewed_test_cases` | `str` | Polished test cases produced by the quality agent when it passes |
+| `quality_passed` | `bool` | `True` when the quality agent is satisfied with the draft |
+| `quality_feedback` | `str` | Issues found by the quality agent; `""` when quality passes |
 | `human_approved` | `bool` | `True` once the human reviewer accepts the test cases |
 | `human_feedback` | `str` | Free-text feedback from the human; `""` when approved |
 | `published` | `bool` | `True` after the test cases are written to Notion |
-| `retry_count` | `int` | Loop counter incremented by the Quality Agent; caps at 3 |
+| `retry_count` | `int` | Loop counter incremented by the quality agent; caps at 3 |
 
 ```python
 from typing import TypedDict
@@ -164,7 +163,7 @@ class QAState(TypedDict):
 
 ## 4. Implement the three agent nodes in `nodes.py`
 
-Create `nodes.py`. All agents use `ChatAnthropic(model="claude-sonnet-4-5")`. Context Agent and Publish Node also use the Notion MCP tools from `config["configurable"]["notion_tools"]`.
+Create `nodes.py`. All agents use `ChatAnthropic(model="claude-sonnet-4-5")`. The context agent and publish node also use the Notion MCP tools from `config["configurable"]["notion_tools"]`.
 
 Start with shared imports and a helper:
 
@@ -179,37 +178,38 @@ def _call(system: str, user: str) -> str:
     return _llm.invoke([SystemMessage(content=system), HumanMessage(content=user)]).content
 ```
 
-### 4.1. `context_agent_node` — Agent 1: Fetch User Story
+### 4.1. `context_agent_node` — **Agent 1: Read User Story**
 
-This agent is responsible for retrieving the user story from Notion. It makes **one tool call** and returns the result.
+This agent is responsible for reading the user story from a local file. It makes **one tool call** and returns the result.
 
-**Fetch the Notion page**
+**Read the input file**
 
-Using the `notion_tools` from `config["configurable"]`:
-1. Find the tool whose name contains `"retrieve"` or `"page"` — this is the page-fetch tool.
-2. Call it with `{"page_id": state["page_id"]}` to get the page content.
-3. Extract the plain text from the response and store it in `user_story`.
+Using the `fs_tools` from `config["configurable"]`:
+
+1. Find the tool whose name contains `"read_file"` — this is the file-read tool.
+2. Call it with `{"path": state["file_path"]}` to get the file content.
+3. Extract the plain text from the response and store it in `user_story`.
 
 Return `{"user_story": ...}`.
 
 ```python
 def context_agent_node(state: QAState, config: dict) -> dict:
     """Agent 1 — owns: user_story"""
-    notion_tools = config["configurable"]["notion_tools"]
-    # TODO: find the page-fetch tool
-    # TODO: call it with state["page_id"]
+    fs_tools = config["configurable"]["fs_tools"]
+    # TODO: find the read_file tool
+    # TODO: call it with state["file_path"]
     # TODO: extract text content and return {"user_story": ...}
 ```
 
-### 4.2. `qa_agent_node` — Agent 2: Test Case Generation
+### 4.2. `qa_agent_node` — Agent 2: Test case generation
 
-This agent has a single responsibility: generate test cases. It makes **one LLM call** and returns the result.
+This agent has a single responsibility: to generate test cases. It makes one LLM call and returns the result.
 
 On the first run, `human_feedback` and `quality_feedback` are both empty strings. On subsequent runs, one or both may contain feedback to address — include whichever is non-empty in the user message so Claude explicitly fixes the raised issues.
 
-**Generate draft test cases**
+#### **Generate draft test cases**
 
-System prompt:
+System prompt example (you can generate your own version):
 
 ```
 You are a senior QA engineer. Write thorough test cases for the user story below.
@@ -237,13 +237,13 @@ def qa_agent_node(state: QAState) -> dict:
     # TODO: call LLM and return {"draft_test_cases": ...}
 ```
 
-### 4.3. `quality_agent_node` — Agent 3: Quality Gate
+### 4.3. `quality_agent_node` — Agent 3: Quality gate
 
-This agent audits the draft produced by the QA Agent. It makes **one LLM call** and decides whether the draft is good enough to show to a human.
+This agent audits the draft produced by the QA agent. It makes one LLM call and decides whether the draft is good enough to show to a human.
 
-**Audit the draft test cases**
+#### **Audit the draft test cases**
 
-System prompt:
+System prompt example (you can generate your own version):
 
 ```
 You are a QA lead performing a quality gate review.
@@ -266,6 +266,7 @@ Do not rewrite the test cases. Only judge and explain.
 User message: the `draft_test_cases` string.
 
 Parse the response:
+
 - Starts with `"PASSED"` → set `quality_passed = True`, `quality_feedback = ""`, produce `reviewed_test_cases = draft_test_cases` (the draft is accepted as-is).
 - Starts with `"FAILED"` → set `quality_passed = False`, `quality_feedback = <the issues text>`, leave `reviewed_test_cases` unchanged.
 
@@ -287,7 +288,7 @@ Add both nodes to `nodes.py`.
 
 ### `human_review_node`
 
-This node **pauses the graph** with `interrupt()` and routes based on the engineer's decision.
+This node pauses the graph with `interrupt()` and routes based on the engineer's decision.
 
 ```python
 from langgraph.types import interrupt
@@ -302,34 +303,34 @@ def human_review_node(state: QAState) -> dict:
     # 4. Return {"human_approved": ..., "human_feedback": ...}
 ```
 
-**Requirements:**
+#### **Requirements**
+
 - Print `state["reviewed_test_cases"]` before calling `interrupt` so the engineer has context.
 - Use `interrupt("Approve these test cases? Type 'approve' or describe changes: ")`.
-- Normalise the comparison to lowercase and strip whitespace.
+- Normalize the comparison to lowercase and strip whitespace.
 - Return both `human_approved` and `human_feedback` in every code path.
 
 ### `publish_node`
 
-Runs after approval and writes the test cases back to Notion as a new child page under the original user story page.
+Runs after approval and writes the test cases to a local output file.
 
-Using the `notion_tools` from `config["configurable"]`:
-1. Find the tool whose name contains `"create"` — this creates a new Notion page.
-2. Call it to create a child page with:
-   - `parent`: `{"page_id": state["page_id"]}`
-   - `properties`: a title such as `"QA Test Cases"`
-   - `children`: a single paragraph block containing `reviewed_test_cases`
-3. Return `{"published": True}`.
+Using the `fs_tools` from `config["configurable"]`:
+
+1. Find the tool whose name contains `"write_file"` — this writes to a file.
+2. Call it with `{"path": "output_test_cases.md", "content": state["reviewed_test_cases"]}` to save the test cases.
+3. Return `{"published": True}`.
 
 ```python
 def publish_node(state: QAState, config: dict) -> dict:
-    """Creates a child Notion page with the approved test cases."""
-    notion_tools = config["configurable"]["notion_tools"]
-    # TODO: find the page-create tool
-    # TODO: call it with parent page_id and reviewed_test_cases as content
+    """Writes the approved test cases to a local output file."""
+    fs_tools = config["configurable"]["fs_tools"]
+    # TODO: find the write_file tool
+    # TODO: call it with path="output_test_cases.md" and reviewed_test_cases as content
     # TODO: return {"published": True}
 ```
 
-> **Tip:** Print `[t.name for t in notion_tools]` at the start of a run to see the exact tool names your MCP server exposes, then look for the one that creates pages.
+> **Tip:** Print `[t.name for t in fs_tools]` at the start of a run to see the exact tool names your MCP server exposes.
+> 
 
 ---
 
@@ -356,20 +357,20 @@ context_agent ──► qa_agent ──► quality_agent
 
 ### Implementation checklist
 
-- [ ]  Import `StateGraph`, `END`, `MemorySaver`.
-- [ ]  Register `context_agent_node`, `qa_agent_node`, `quality_agent_node`, `human_review_node`, `publish_node`.
-- [ ]  Add direct edges: `context_agent → qa_agent → quality_agent` and `publish → END`.
+- [ ]  Import `StateGraph`, `END`, `MemorySaver`
+- [ ]  Register `context_agent_node`, `qa_agent_node`, `quality_agent_node`, `human_review_node`, `publish_node`
+- [ ]  Add direct edges: `context_agent → qa_agent → quality_agent` and `publish → END`
 - [ ]  Write a `quality_router` function:
-  - `state.get("quality_passed") == True` → `"human_review"`
-  - `state.get("retry_count", 0) >= 3` → `"human_review"` (safety exit — send best effort to human)
-  - otherwise → `"qa_agent"`
+    - `state.get("quality_passed") == True` → `"human_review"`
+    - `state.get("retry_count", 0) >= 3` → `"human_review"` (safety exit — send best effort to human)
+    - Otherwise → `"qa_agent"`
 - [ ]  Write a `review_router` function:
-  - `state.get("human_approved") == True` → `"publish"`
-  - otherwise → `"qa_agent"`
-- [ ]  Add a conditional edge from `quality_agent` using `quality_router`.
-- [ ]  Add a conditional edge from `human_review` using `review_router`.
-- [ ]  Set the entry point to `"context_agent"`.
-- [ ]  Compile with a `MemorySaver` checkpointer.
+    - `state.get("human_approved") == True` → `"publish"`
+    - Otherwise → `"qa_agent"`
+- [ ]  Add a conditional edge from `quality_agent` using `quality_router`
+- [ ]  Add a conditional edge from `human_review` using `review_router`
+- [ ]  Set the entry point to `"context_agent"`
+- [ ]  Compile with a `MemorySaver` checkpointer
 
 ```python
 from langgraph.graph import END, StateGraph
@@ -398,17 +399,17 @@ def build_graph():
 
 ## 7. Implement `main.py`
 
-Create `main.py`. It must:
+Create `main.py`. It should:
 
-1. Load the `.env` file.
-2. Accept a Notion page ID as a command-line argument (e.g. `python main.py <page-id>`).
-3. Load the Notion MCP tools from `mcp_config.json` using `langchain_mcp_adapters`.
+1. Load the `.env` file.
+2. Accept a file path as a command-line argument (e.g. `python main.py user_story.txt`).
+3. Load the filesystem MCP tools from `mcp_config.json` using `langchain_mcp_adapters`.
 4. Build the compiled graph.
-5. Create a unique `thread_id` per run.
-6. Stream the graph with the initial state, passing `notion_tools` in `config["configurable"]`.
-7. Catch `GraphInterrupt`, prompt the engineer with `input()`, and resume with `Command(resume=response)`.
-8. Repeat the interrupt/resume loop until the graph reaches `END`.
-9. Print the final `published` flag.
+5. Create a unique `thread_id` per run.
+6. Stream the graph with the initial state, passing `fs_tools` in `config["configurable"]`.
+7. Catch `GraphInterrupt`, prompt the engineer with `input()`, and resume with `Command(resume=response)`.
+8. Repeat the interrupt/resume loop until the graph reaches `END`.
+9. Print the final `published` flag.
 
 ```python
 import sys
@@ -422,8 +423,7 @@ from langchain_mcp_adapters.client import MultiServerMCPClient
 
 from graph import build_graph
 
-
-def load_notion_tools() -> list:
+def load_fs_tools() -> list:
     import json, asyncio
     with open("mcp_config.json") as f:
         cfg = json.load(f)
@@ -432,14 +432,13 @@ def load_notion_tools() -> list:
             return client.get_tools()
     return asyncio.run(_load())
 
-
-def run(page_id: str) -> None:
-    notion_tools = load_notion_tools()
+def run(file_path: str) -> None:
+    fs_tools = load_fs_tools()
     graph = build_graph()
-    thread = {"configurable": {"thread_id": str(uuid.uuid4()), "notion_tools": notion_tools}}
+    thread = {"configurable": {"thread_id": str(uuid.uuid4()), "fs_tools": fs_tools}}
 
     initial = {
-        "page_id": page_id,
+        "file_path": file_path,
         "user_story": "",
         "draft_test_cases": "",
         "reviewed_test_cases": "",
@@ -451,7 +450,7 @@ def run(page_id: str) -> None:
         "retry_count": 0,
     }
 
-    print(f"\n{'='*60}\nProcessing Notion page: {page_id}\n{'='*60}")
+    print(f"\n{'='*60}\nProcessing file: {file_path}\n{'='*60}")
 
     try:
         for step in graph.stream(initial, config=thread, stream_mode="updates"):
@@ -471,13 +470,12 @@ def run(page_id: str) -> None:
     final = graph.get_state(thread).values
     print(f"\n  published = {final.get('published')}")
 
-
 if __name__ == "__main__":
-    page_id = sys.argv[1] if len(sys.argv) > 1 else ""
-    if not page_id:
-        print("Usage: python main.py <notion-page-id>")
+    file_path = sys.argv[1] if len(sys.argv) > 1 else ""
+    if not file_path:
+        print("Usage: python main.py <path-to-user-story-file>")
         sys.exit(1)
-    run(page_id)
+    run(file_path)
 ```
 
 ---
@@ -485,14 +483,14 @@ if __name__ == "__main__":
 ## 8. Run the agent
 
 ```
-python main.py <your-notion-page-id>
+python main.py user_story.txt
 ```
 
 Expected output:
 
 ```
 ============================================================
-Processing Notion page: <page-id>
+Processing file: user_story.txt
 ============================================================
   ✓ context_agent wrote: ['user_story']
   ✓ qa_agent wrote: ['draft_test_cases']
@@ -516,16 +514,17 @@ Processing Notion page: <page-id>
   published = True
 ```
 
+After a successful run, the approved test cases are saved to `output_test_cases.md` in the project root.
+
 ### Tips
 
-- If Notion MCP tools fail to load, confirm Node.js is installed: `node --version`.
-- To find a Notion page ID, open the page in your browser — it's the last path segment in the URL.
-- Make sure the Notion integration is shared with the page you want to read. The integration also needs **Insert content** permission to create child pages.
-- Print `[t.name for t in notion_tools]` in `publish_node` to discover the exact tool name for page creation.
-- LangSmith tracing is enabled automatically via the `LANGCHAIN_*` env variables. Open `smith.langchain.com` after a run to see every node and LLM call.
-- `MemorySaver` keeps state in memory only. Each run gets a fresh `thread_id`, so runs are independent.
-- The `retry_count >= 3` safety exit in `quality_router` prevents the quality loop from running forever — the human will see the best draft produced so far.
-- Both `quality_feedback` and `human_feedback` are included in the QA Agent's next prompt when non-empty, so Claude explicitly addresses every raised issue.
+- If filesystem MCP tools fail to load, confirm Node.js is installed: `node --version`.
+- The MCP server is scoped to `.` (the project root). Any file you pass must be inside the project directory or a subdirectory.
+- Print `[t.name for t in fs_tools]` in `context_agent_node` to see the exact tool names the MCP server exposes.
+- LangSmith tracing is enabled automatically via the `LANGCHAIN_*` env variables. Open `smith.langchain.com` after a run to see every node and LLM call.
+- `MemorySaver` keeps state in memory only. Each run gets a fresh `thread_id`, so runs are independent.
+- The `retry_count >= 3` safety exit in `quality_router` prevents the quality loop from running forever — the human will see the best draft produced so far.
+- Both `quality_feedback` and `human_feedback` are included in the QA Agent's next prompt when non-empty, so Claude explicitly addresses every raised issue.
 
 ---
 
@@ -534,25 +533,26 @@ Processing Notion page: <page-id>
 Before submitting, review the checklist.
 
 ### ✅ Submission checklist
-- [ ]  `mcp_config.json` has the Notion API key configured
-- [ ]  Notion page shared with the integration (with Insert content permission)
-- [ ]  `state.py` — `QAState` TypedDict with all 10 fields
-- [ ]  `nodes.py` — `context_agent_node` fetches the user story from Notion via MCP
-- [ ]  `nodes.py` — `qa_agent_node` generates `draft_test_cases`; incorporates `quality_feedback` and `human_feedback` when present
-- [ ]  `nodes.py` — `quality_agent_node` audits `draft_test_cases`, returns `quality_passed`, `quality_feedback`, `reviewed_test_cases`, increments `retry_count`
-- [ ]  `nodes.py` — `human_review_node` calls `interrupt()`, returns `human_approved` and `human_feedback`
-- [ ]  `nodes.py` — `publish_node` creates a child Notion page with the approved test cases
-- [ ]  `graph.py` — `build_graph` registers all five nodes with correct edges
-- [ ]  `graph.py` — `quality_router`: quality_passed or retry_count >= 3 → `human_review`; else → `qa_agent`
-- [ ]  `graph.py` — `review_router`: approved → `publish`; else → `qa_agent`
-- [ ]  `graph.py` — compiled with `MemorySaver` checkpointer
-- [ ]  `main.py` — Notion tools loaded from MCP config and passed via `configurable`
-- [ ]  `main.py` — interrupt / resume loop implemented
-- [ ]  `python main.py <notion-page-id>` runs end-to-end without errors
-- [ ]  Quality loop works: quality fails → `qa_agent` regenerates → quality passes
-- [ ]  Human review loop works: pause → feedback → `qa_agent` re-runs → quality gate → approve
-- [ ]  The agent creates a child Notion page with the test cases after approval
-- [ ]  Changes are committed and pushed to `main`
+
+- [ ]  `mcp_config.json` uses the filesystem MCP server pointing to `.`
+- [ ]  `user_story.txt` (or equivalent input file) exists in the project root
+- [ ]  `state.py` — `QAState` TypedDict with all 10 fields
+- [ ]  `nodes.py` — `context_agent_node` reads the user story from a local file via MCP
+- [ ]  `nodes.py` — `qa_agent_node` generates `draft_test_cases`; incorporates `quality_feedback` and `human_feedback` when present
+- [ ]  `nodes.py` — `quality_agent_node` audits `draft_test_cases`, returns `quality_passed`, `quality_feedback`, `reviewed_test_cases`, increments `retry_count`
+- [ ]  `nodes.py` — `human_review_node` calls `interrupt()`, returns `human_approved` and `human_feedback`
+- [ ]  `nodes.py` — `publish_node` writes the approved test cases to `output_test_cases.md` via MCP
+- [ ]  `graph.py` — `build_graph` registers all five nodes with correct edges
+- [ ]  `graph.py` — `quality_router`: quality_passed or retry_count >= 3 → `human_review`; else → `qa_agent`
+- [ ]  `graph.py` — `review_router`: approved → `publish`; else → `qa_agent`
+- [ ]  `graph.py` — compiled with `MemorySaver` checkpointer
+- [ ]  `main.py` — filesystem tools loaded from MCP config and passed via `configurable`
+- [ ]  `main.py` — interrupt / resume loop implemented
+- [ ]  `python main.py user_story.txt` runs end-to-end without errors
+- [ ]  Quality loop works: quality fails → `qa_agent` regenerates → quality passes
+- [ ]  Human review loop works: pause → feedback → `qa_agent` re-runs → quality gate → approve
+- [ ]  The agent writes `output_test_cases.md` with the approved test cases after approval
+- [ ]  Changes are committed and pushed to `main`
 
 1. Commit your changes.
 2. Push to GitHub.
