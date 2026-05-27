@@ -1,4 +1,4 @@
-# Final Practice - Open Challenge: Design Your Own Multi-Agent LangGraph Pipeline
+# Final Practice — Open Challenge: Design Your Own Multi-Agent LangGraph Pipeline
 
 In this task you'll design and build a LangGraph pipeline **of your own choosing**. Unlike the guided QA agent exercise, this challenge starts with a blank canvas — you pick the problem domain, decompose the work into agents, and wire everything together yourself.
 
@@ -394,7 +394,6 @@ Work through this checklist as you test:
 
 ## Submission checklist
 
-- [ ] `.env` contains all required API keys
 - [ ] `mcp_config.json` configured with your chosen MCP server
 - [ ] `state.py` — `TypedDict` with all fields, including `human_approved`, `human_feedback`, `retry_count`, `published`
 - [ ] At least **2 agent nodes**, each with a single clearly bounded responsibility
