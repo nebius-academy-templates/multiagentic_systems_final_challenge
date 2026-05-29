@@ -399,10 +399,6 @@ Work through this checklist as you test:
 
 ## Submission checklist
 
-Before submitting, review the checklist.
-
-📂 Submission note: place files in the root folder.
-When you submit, all your project files must live in the root of the repository to pass automated tests. 
 
 - [ ]  `mcp_config.json` configured with your chosen MCP server
 - [ ]  `state.py` — `TypedDict` with all fields, including `human_approved`, `human_feedback`, `retry_count`, `published`
