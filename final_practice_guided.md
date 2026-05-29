@@ -530,11 +530,6 @@ After a successful run, the approved test cases are saved to `output_test_cases
 
 ## Submit your task
 
-Before submitting, review the checklist.
-
-📂 Submission note: place files in the root folder.
-When you submit, all your project files must live in the root of the repository to pass automated tests. 
-
 ### ✅ Submission checklist
 
 
