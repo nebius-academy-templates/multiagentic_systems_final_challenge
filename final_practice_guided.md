@@ -532,7 +532,12 @@ After a successful run, the approved test cases are saved to `output_test_cases
 
 Before submitting, review the checklist.
 
+📂 Submission note: place files in the root folder.
+When you submit, all your project files must live in the root of the repository to pass automated tests. 
+
 ### ✅ Submission checklist
+
+
 
 - [ ]  `mcp_config.json` uses the filesystem MCP server pointing to `.`
 - [ ]  `user_story.txt` (or equivalent input file) exists in the project root
