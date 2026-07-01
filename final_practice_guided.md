@@ -49,7 +49,7 @@ python-dotenv>=1.0
 
 ### Repository layout
 
-Your task is to create all files listed below. `mcp_config.json` and `requirements.txt` are provided.
+Your task is to create all files listed below. 
 
 ```
 agent-qa-langgraph/
@@ -57,8 +57,8 @@ agent-qa-langgraph/
 ├── nodes.py            ← TODO: context_agent, qa_agent, quality_agent, human_review_node, publish_node (Tasks 4–5)
 ├── graph.py            ← TODO: wire the StateGraph (Task 6)
 ├── main.py             ← TODO: interrupt / resume entry point (Task 7)
-├── mcp_config.json     ← provided: edit with your Notion key (Task 2)
-└── requirements.txt    ← provided
+├── mcp_config.json     ← TODO
+└── requirements.txt    ← TODO
 ```
 
 ### Key concepts
