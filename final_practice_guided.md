@@ -554,6 +554,4 @@ After a successful run, the approved test cases are saved to `output_test_cases
 - [ ]  The agent writes `output_test_cases.md` with the approved test cases after approval
 - [ ]  Changes are committed and pushed to `main`
 
-1. Commit your changes.
-2. Push to GitHub.
-3. Return to the lesson and click "Submit."
+
